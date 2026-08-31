@@ -129,6 +129,8 @@ void TimerSystem::RunFrame()
 {
     for (int i = m_once_off_timers.size() - 1; i >= 0; i--)
     {
+        if (i >= static_cast<int>(m_once_off_timers.size())) continue;
+
         auto timer = m_once_off_timers[i];
         if (timers::universal_time >= timer->m_exec_time)
         {
@@ -136,13 +138,18 @@ void TimerSystem::RunFrame()
             timer->m_callback->ScriptContext().Reset();
             timer->m_callback->Execute();
 
-            m_once_off_timers.erase(m_once_off_timers.begin() + i);
+            auto it = std::find(m_once_off_timers.begin(), m_once_off_timers.end(), timer);
+            if (it == m_once_off_timers.end()) continue;
+
+            m_once_off_timers.erase(it);
             delete timer;
         }
     }
 
     for (int i = m_repeat_timers.size() - 1; i >= 0; i--)
     {
+        if (i >= static_cast<int>(m_repeat_timers.size())) continue;
+
         auto timer = m_repeat_timers[i];
         if (timers::universal_time >= timer->m_exec_time)
         {
@@ -152,7 +159,10 @@ void TimerSystem::RunFrame()
 
             if (timer->m_kill_me)
             {
-                m_repeat_timers.erase(m_repeat_timers.begin() + i);
+                auto it = std::find(m_repeat_timers.begin(), m_repeat_timers.end(), timer);
+                if (it == m_repeat_timers.end()) continue;
+
+                m_repeat_timers.erase(it);
                 delete timer;
                 continue;
             }

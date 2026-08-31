@@ -32,6 +32,7 @@ class ScriptCallback
     void AddListener(CallbackT fnPluginFunction);
     bool RemoveListener(CallbackT fnPluginFunction);
     bool IsContextSafe();
+    bool IsAlive() const;
     std::string GetName() { return m_name; }
     unsigned int GetFunctionCount() const { return m_functions.size(); }
     std::vector<CallbackT> GetFunctions() { return m_functions; }
@@ -42,6 +43,9 @@ class ScriptCallback
     fxNativeContext& ScriptContextStruct() { return m_root_context; }
 
   private:
+    static constexpr uint64_t kAliveMagic = 0x43535343414C4956ull;
+
+    uint64_t m_alive;
     std::vector<CallbackT> m_functions;
     std::string m_name;
     std::string m_profile_name;

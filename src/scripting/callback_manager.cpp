@@ -25,12 +25,19 @@ namespace counterstrikesharp {
 
 ScriptCallback::ScriptCallback(const char* szName) : m_root_context(fxNativeContext{})
 {
+    m_alive = kAliveMagic;
     m_script_context_raw = ScriptContextRaw(m_root_context);
     m_name = std::string(szName);
     m_profile_name = "ScriptCallback::Execute::" + m_name;
 }
 
-ScriptCallback::~ScriptCallback() { m_functions.clear(); }
+ScriptCallback::~ScriptCallback()
+{
+    m_alive = 0;
+    m_functions.clear();
+}
+
+bool ScriptCallback::IsAlive() const { return m_alive == kAliveMagic; }
 
 void ScriptCallback::AddListener(CallbackT fnPluginFunction) { m_functions.push_back(fnPluginFunction); }
 
@@ -58,6 +65,12 @@ bool ScriptCallback::IsContextSafe()
 
 void ScriptCallback::Execute(bool bResetContext)
 {
+    if (!IsAlive())
+    {
+        CSSHARP_CORE_WARN("ScriptCallback::Execute aborted: callback object is no longer alive");
+        return;
+    }
+
     if (!IsContextSafe())
     {
         ScriptContext().ThrowNativeError("ScriptCallback::Execute aborted due to invalid context");
