@@ -75,8 +75,14 @@ CounterStrikeSharpMMPlugin* mmPlugin = nullptr;
 class c_guarded_source_hook : public SourceHook::Impl::CSourceHookImpl
 {
   public:
-    SourceHook::IHookContext* SetupHookLoop(SourceHook::IHookManagerInfo* hi, void* vfnptr, void* thisptr, void** origCallAddr,
-                                            META_RES* statusPtr, META_RES* prevResPtr, META_RES* curResPtr, const void* origRetPtr,
+    SourceHook::IHookContext* SetupHookLoop(SourceHook::IHookManagerInfo* hi,
+                                            void* vfnptr,
+                                            void* thisptr,
+                                            void** origCallAddr,
+                                            META_RES* statusPtr,
+                                            META_RES* prevResPtr,
+                                            META_RES* curResPtr,
+                                            const void* origRetPtr,
                                             void* overrideRetPtr) override
     {
         auto* pContext = SourceHook::Impl::CSourceHookImpl::SetupHookLoop(hi, vfnptr, thisptr, origCallAddr, statusPtr, prevResPtr,
