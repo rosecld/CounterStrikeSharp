@@ -162,6 +162,13 @@ void EntityManager::OnShutdown()
 
 void CEntityListener::OnEntitySpawned(CEntityInstance* pEntity)
 {
+    if (!pEntity)
+    {
+        CSSHARP_CORE_WARN("OnEntitySpawned received a null entity, the listener is skipped");
+
+        return;
+    }
+
     auto callback = globals::entityManager.on_entity_spawned_callback;
 
     if (callback && callback->GetFunctionCount())
@@ -173,6 +180,13 @@ void CEntityListener::OnEntitySpawned(CEntityInstance* pEntity)
 }
 void CEntityListener::OnEntityCreated(CEntityInstance* pEntity)
 {
+    if (!pEntity)
+    {
+        CSSHARP_CORE_WARN("OnEntityCreated received a null entity, the listener is skipped");
+
+        return;
+    }
+
     auto callback = globals::entityManager.on_entity_created_callback;
 
     if (callback && callback->GetFunctionCount())
@@ -184,6 +198,13 @@ void CEntityListener::OnEntityCreated(CEntityInstance* pEntity)
 }
 void CEntityListener::OnEntityDeleted(CEntityInstance* pEntity)
 {
+    if (!pEntity)
+    {
+        CSSHARP_CORE_WARN("OnEntityDeleted received a null entity, the listener is skipped");
+
+        return;
+    }
+
     auto callback = globals::entityManager.on_entity_deleted_callback;
 
     if (callback && callback->GetFunctionCount())
@@ -195,6 +216,13 @@ void CEntityListener::OnEntityDeleted(CEntityInstance* pEntity)
 }
 void CEntityListener::OnEntityParentChanged(CEntityInstance* pEntity, CEntityInstance* pNewParent)
 {
+    if (!pEntity)
+    {
+        CSSHARP_CORE_WARN("OnEntityParentChanged received a null entity, the listener is skipped");
+
+        return;
+    }
+
     auto callback = globals::entityManager.on_entity_parent_changed_callback;
 
     if (callback && callback->GetFunctionCount())

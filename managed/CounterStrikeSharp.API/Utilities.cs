@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  This file is part of CounterStrikeSharp.
  *  CounterStrikeSharp is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -79,7 +79,14 @@ namespace CounterStrikeSharp.API
 
         public static CCSPlayerController? GetPlayerFromUserid(int userid)
         {
-            return GetPlayerFromIndex((userid & 0xFF) + 1);
+            var player = GetPlayerFromIndex((userid & 0xFF) + 1);
+
+            if (player != null && player.IsValid && player.UserId == userid)
+            {
+                return player;
+            }
+
+            return GetPlayers().FirstOrDefault(candidate => candidate.UserId == userid);
         }
 
         public static CCSPlayerController? GetPlayerFromSteamId(ulong steamId)

@@ -12,6 +12,8 @@
 #include <sourcehook/sourcehook.h>
 #include <sourcehook/sourcehook_impl.h>
 
+#include "core/log.h"
+
 #include "log.h"
 #include "utils/virtual.h"
 #include "core/memory.h"
@@ -70,7 +72,43 @@ ICvar* cvars = nullptr;
 ISource2Server* server = nullptr;
 CGlobalEntityList* globalEntityList = nullptr;
 CounterStrikeSharpMMPlugin* mmPlugin = nullptr;
-SourceHook::Impl::CSourceHookImpl source_hook_impl;
+class c_guarded_source_hook : public SourceHook::Impl::CSourceHookImpl
+{
+  public:
+    SourceHook::IHookContext* SetupHookLoop(SourceHook::IHookManagerInfo* hi, void* vfnptr, void* thisptr, void** origCallAddr,
+                                            META_RES* statusPtr, META_RES* prevResPtr, META_RES* curResPtr, const void* origRetPtr,
+                                            void* overrideRetPtr) override
+    {
+        auto* pContext = SourceHook::Impl::CSourceHookImpl::SetupHookLoop(hi, vfnptr, thisptr, origCallAddr, statusPtr, prevResPtr,
+                                                                          curResPtr, origRetPtr, overrideRetPtr);
+
+        if (pContext)
+        {
+            m_nDepth++;
+        }
+
+        return pContext;
+    }
+
+    void EndContext(SourceHook::IHookContext* pCtx) override
+    {
+        if (m_nDepth <= 0)
+        {
+            CSSHARP_CORE_WARN("SourceHook: EndContext without a matching hook loop, ignoring it");
+
+            return;
+        }
+
+        m_nDepth--;
+
+        SourceHook::Impl::CSourceHookImpl::EndContext(pCtx);
+    }
+
+  private:
+    int m_nDepth = 0;
+};
+
+c_guarded_source_hook source_hook_impl;
 SourceHook::ISourceHook* source_hook = &source_hook_impl;
 ISmmAPI* ismm = nullptr;
 CGameEntitySystem* entitySystem = nullptr;

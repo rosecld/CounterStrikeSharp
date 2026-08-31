@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection.Metadata;
@@ -14,7 +15,7 @@ public class Schema
 {
     record SchemaKey(string ClassName, string PropertyName);
 
-    private static Dictionary<SchemaKey, short> _schemaOffsets = new();
+    private static ConcurrentDictionary<SchemaKey, short> _schemaOffsets = new();
 
     private static HashSet<string> _cs2BadList = new HashSet<string>()
     {
@@ -69,7 +70,7 @@ public class Schema
         if (!_schemaOffsets.TryGetValue(key, out var offset))
         {
             offset = NativeAPI.GetSchemaOffset(className, propertyName);
-            _schemaOffsets.Add(key, offset);
+            _schemaOffsets[key] = offset;
         }
 
         return offset;

@@ -1,7 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace CounterStrikeSharp.API.Modules.Entities;
 
@@ -72,8 +74,18 @@ public static class EntitySystem
         if (pointer == IntPtr.Zero)
             return InvalidEHandleIndex;
 
-        return Schema.GetPointer<CEntityIdentity?>(pointer, "CEntityInstance", "m_pEntity")?.EntityHandle.Raw ??
-               InvalidEHandleIndex;
+        try
+        {
+            return Schema.GetPointer<CEntityIdentity?>(pointer, "CEntityInstance", "m_pEntity")?.EntityHandle.Raw ??
+                   InvalidEHandleIndex;
+        }
+        catch (AccessViolationException)
+        {
+            Application.Instance.Logger.LogWarning(
+                "Entity pointer {Pointer:X} is no longer readable, the wrapper is created as invalid", pointer.ToInt64());
+
+            return InvalidEHandleIndex;
+        }
     }
 
 }
