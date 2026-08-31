@@ -14,6 +14,7 @@
  *  along with CounterStrikeSharp.  If not, see <https://www.gnu.org/licenses/>. *
  */
 
+#include <cstring>
 #include <ios>
 #include <sstream>
 #include <unordered_map>
@@ -107,7 +108,9 @@ ValveFunction* CreateVirtualFunctionBySignature(ScriptContext& script_context)
 
     auto* function_addr = FindSignature(binary_name, signature_hex_string);
 
-    if (signature_hex_string == std::string(globals::gameConfig->GetSignature("CBaseEntity_TakeDamageOld")))
+    const char* take_damage_signature = globals::gameConfig->GetSignature("CBaseEntity_TakeDamageOld");
+
+    if (signature_hex_string != nullptr && take_damage_signature != nullptr && strcmp(signature_hex_string, take_damage_signature) == 0)
     {
         // Special case for TakeDamageOld as we have detoured it
         return globals::entityManager.Func_OnTakeDamage;

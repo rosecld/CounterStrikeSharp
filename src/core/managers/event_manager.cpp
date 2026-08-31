@@ -165,7 +165,19 @@ bool EventManager::UnhookEvent(const char* szName, CallbackT fnCallback, bool bP
         pCallback = pHook->m_pPreHook;
     }
 
-    pCallback->RemoveListener(fnCallback);
+    if (!pCallback)
+    {
+        CSSHARP_CORE_WARN("Event `{0}` has no {1} hook to remove", szName, bPost ? "post" : "pre");
+
+        return false;
+    }
+
+    if (!pCallback->RemoveListener(fnCallback))
+    {
+        CSSHARP_CORE_WARN("Callback {0} was not registered for event `{1}` ({2})", (void*)fnCallback, szName, bPost ? "post" : "pre");
+
+        return false;
+    }
 
     if (pCallback->GetFunctionCount() == 0)
     {

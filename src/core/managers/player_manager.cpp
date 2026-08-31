@@ -320,7 +320,7 @@ int PlayerManager::MaxClients() const { return globals::getGlobalVars()->maxClie
 
 CPlayer* PlayerManager::GetPlayerBySlot(int client) const
 {
-    if (client > MaxClients() || client < 0)
+    if (client > MaxClients() || client < 0 || client >= 66)
     {
         return nullptr;
     }
@@ -590,13 +590,31 @@ float CPlayer::GetTimeConnected() const
     return GetNetInfo()->GetTimeConnected();
 }
 
-void CPlayer::SetListen(CPlayerSlot slot, ListenOverride listen) { m_listenMap[slot.Get()] = listen; }
+void CPlayer::SetListen(CPlayerSlot slot, ListenOverride listen)
+{
+    if (slot.Get() < 0 || slot.Get() >= static_cast<int>(sizeof(m_listenMap) / sizeof(m_listenMap[0])))
+    {
+        CSSHARP_CORE_WARN("SetListen: slot {0} is out of range, ignoring", slot.Get());
+
+        return;
+    }
+
+    m_listenMap[slot.Get()] = listen;
+}
 
 void CPlayer::SetVoiceFlags(VoiceFlag_t flags) { m_voiceFlag = flags; }
 
 VoiceFlag_t CPlayer::GetVoiceFlags() { return m_voiceFlag; }
 
-ListenOverride CPlayer::GetListen(CPlayerSlot slot) const { return m_listenMap[slot.Get()]; }
+ListenOverride CPlayer::GetListen(CPlayerSlot slot) const
+{
+    if (slot.Get() < 0 || slot.Get() >= static_cast<int>(sizeof(m_listenMap) / sizeof(m_listenMap[0])))
+    {
+        return Listen_Default;
+    }
+
+    return m_listenMap[slot.Get()];
+}
 
 void CPlayer::Connect()
 {

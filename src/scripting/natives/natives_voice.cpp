@@ -42,7 +42,11 @@ void SetClientListening(ScriptContext& scriptContext)
 
     auto iSenderSlot = sender->GetEntityIndex().Get() - 1;
 
-    if (iSenderSlot < 0 || iSenderSlot >= globals::getGlobalVars()->maxClients) scriptContext.ThrowNativeError("Invalid sender");
+    if (globals::playerManager.GetPlayerBySlot(iSenderSlot) == nullptr)
+    {
+        scriptContext.ThrowNativeError("Invalid sender");
+        return;
+    }
 
     auto pPlayer = globals::playerManager.GetPlayerBySlot(receiver->GetEntityIndex().Get() - 1);
 
@@ -74,7 +78,11 @@ ListenOverride GetClientListening(ScriptContext& scriptContext)
 
     auto iSenderSlot = sender->GetEntityIndex().Get() - 1;
 
-    if (iSenderSlot < 0 || iSenderSlot >= globals::getGlobalVars()->maxClients) scriptContext.ThrowNativeError("Invalid sender");
+    if (globals::playerManager.GetPlayerBySlot(iSenderSlot) == nullptr)
+    {
+        scriptContext.ThrowNativeError("Invalid sender");
+        return Listen_Default;
+    }
 
     auto pPlayer = globals::playerManager.GetPlayerBySlot(receiver->GetEntityIndex().Get() - 1);
 
@@ -123,6 +131,7 @@ VoiceFlag_t GetClientVoiceFlags(ScriptContext& scriptContext)
     if (pPlayer == nullptr)
     {
         scriptContext.ThrowNativeError("Invalid receiver");
+        return VoiceFlag_t{};
     }
 
     return pPlayer->GetVoiceFlags();

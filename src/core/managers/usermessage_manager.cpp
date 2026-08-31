@@ -134,7 +134,19 @@ SH_DECL_HOOK8_void(IGameEventSystem,
             pCallback = pHook->m_pPreHook;
         }
 
-        pCallback->RemoveListener(fnCallback);
+        if (!pCallback)
+        {
+            CSSHARP_CORE_WARN("User message {0} has no {1} hook to remove", messageId, mode == HookMode::Post ? "post" : "pre");
+
+            return;
+        }
+
+        if (!pCallback->RemoveListener(fnCallback))
+        {
+            CSSHARP_CORE_WARN("Callback {0} was not registered for user message {1}", (void*)fnCallback, messageId);
+
+            return;
+        }
 
         if (pCallback->GetFunctionCount() == 0)
         {
