@@ -323,7 +323,8 @@ void ConCommandManager::RemoveCommandListener(const char* name, CallbackT callba
     }
 
     auto strName = std::string(name);
-    ConCommandInfo* pInfo = m_cmd_lookup[strName];
+    auto itListener = m_cmd_lookup.find(strName);
+    ConCommandInfo* pInfo = itListener == m_cmd_lookup.end() ? nullptr : itListener->second;
 
     if (!pInfo)
     {
@@ -372,7 +373,8 @@ bool ConCommandManager::RemoveValveCommand(const char* name)
 
     globals::cvars->UnregisterConCommandCallbacks(hFoundCommand);
 
-    auto pInfo = m_cmd_lookup[std::string(name)];
+    auto itFound = m_cmd_lookup.find(std::string(name));
+    auto pInfo = itFound == m_cmd_lookup.end() ? nullptr : itFound->second;
     if (!pInfo)
     {
         return true;
@@ -387,7 +389,9 @@ HookResult ConCommandManager::ExecuteCommandCallbacks(
     const char* name, const CCommandContext& ctx, const CCommand& args, HookMode mode, CommandCallingContext callingContext)
 {
     CSSHARP_CORE_TRACE("[ConCommandManager::ExecuteCommandCallbacks][{}]: {}", mode == Pre ? "Pre" : "Post", name);
-    ConCommandInfo* pInfo = m_cmd_lookup[std::string(name)];
+
+    auto itInfo = m_cmd_lookup.find(std::string(name));
+    ConCommandInfo* pInfo = itInfo == m_cmd_lookup.end() ? nullptr : itInfo->second;
 
     HookResult result = HookResult::Continue;
 
@@ -412,6 +416,8 @@ HookResult ConCommandManager::ExecuteCommandCallbacks(
             {
                 if (mode == HookMode::Pre)
                 {
+                    m_cmd_contexts.erase(&args);
+
                     return HookResult::Stop;
                 }
 
@@ -489,6 +495,11 @@ bool ConCommandManager::IsValidValveCommand(const char* name)
     return pCmd.IsValidRef();
 }
 
-CommandCallingContext ConCommandManager::GetCommandCallingContext(CCommand* args) { return m_cmd_contexts[args]; }
+CommandCallingContext ConCommandManager::GetCommandCallingContext(CCommand* args)
+{
+    auto it = m_cmd_contexts.find(args);
+
+    return it == m_cmd_contexts.end() ? CommandCallingContext::Console : it->second;
+}
 
 } // namespace counterstrikesharp

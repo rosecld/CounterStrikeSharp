@@ -253,7 +253,16 @@ void ValveFunction::Call(ScriptContext& script_context, int offset, bool bypass)
 
 dyno::ReturnAction HookHandler(dyno::HookType hookType, dyno::Hook& hook)
 {
-    auto* vf = g_HookMap[&hook];
+    auto itHook = g_HookMap.find(&hook);
+
+    if (itHook == g_HookMap.end())
+    {
+        CSSHARP_CORE_WARN("Hook {0} is not registered, skipping callback", (void*)&hook);
+
+        return dyno::ReturnAction::Ignored;
+    }
+
+    auto* vf = itHook->second;
 
     if (hookType == dyno::HookType::Pre)
     {
@@ -434,7 +443,7 @@ void ValveFunction::RemoveHook(CallbackT callable, bool post)
 #endif
     });
     g_HookMap[hook] = this;
-    m_trampoline = nullptr;
+    m_trampoline = hook->getOriginal();
 
     if (post)
     {
