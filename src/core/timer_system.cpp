@@ -157,11 +157,11 @@ void TimerSystem::RunFrame()
             timer->m_callback->ScriptContext().Reset();
             timer->m_callback->Execute();
 
+            auto it = std::find(m_repeat_timers.begin(), m_repeat_timers.end(), timer);
+            if (it == m_repeat_timers.end()) continue;
+
             if (timer->m_kill_me)
             {
-                auto it = std::find(m_repeat_timers.begin(), m_repeat_timers.end(), timer);
-                if (it == m_repeat_timers.end()) continue;
-
                 m_repeat_timers.erase(it);
                 delete timer;
                 continue;
@@ -176,12 +176,22 @@ void TimerSystem::RunFrame()
 void TimerSystem::RemoveMapChangeTimers()
 {
     auto isMapChangeTimer = [](timers::Timer* timer) {
-        bool shouldRemove = timer->m_flags & TIMER_FLAG_NO_MAPCHANGE;
-        if (shouldRemove)
+        if (!(timer->m_flags & TIMER_FLAG_NO_MAPCHANGE))
         {
-            delete timer;
+            return false;
         }
-        return shouldRemove;
+
+        if (timer->m_in_exec)
+        {
+            CSSHARP_CORE_WARN("RemoveMapChangeTimers: timer is executing, its removal is deferred to the end of the callback");
+            timer->m_kill_me = true;
+
+            return false;
+        }
+
+        delete timer;
+
+        return true;
     };
 
     std::erase_if(m_once_off_timers, isMapChangeTimer);

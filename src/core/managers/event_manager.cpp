@@ -230,8 +230,16 @@ bool EventManager::OnFireEvent(IGameEvent* pEvent, bool bDontBroadcast)
                 if (!fnMethodToCall) continue;
                 fnMethodToCall(&pCallback->ScriptContextStruct());
 
-                auto result = pCallback->ScriptContext().GetResult<HookResult>();
                 bLocalDontBroadcast = override.m_bDontBroadcast;
+
+                if (pEventHook->m_pPreHook != pCallback)
+                {
+                    CSSHARP_CORE_WARN("Event `{}` was unhooked from inside its own handler, remaining listeners are skipped", szName);
+
+                    break;
+                }
+
+                auto result = pCallback->ScriptContext().GetResult<HookResult>();
 
                 if (result >= HookResult::Handled)
                 {
@@ -263,17 +271,36 @@ bool EventManager::OnFireEventPost(IGameEvent* pEvent, bool bDontBroadcast)
         RETURN_META_VALUE(MRES_IGNORED, false);
     }
 
+    if (m_EventStack.empty())
+    {
+        CSSHARP_CORE_WARN("OnFireEventPost fired without a matching pre hook, skipping");
+
+        RETURN_META_VALUE(MRES_IGNORED, true);
+    }
+
     auto pHook = m_EventStack.top();
+    m_EventStack.pop();
 
     if (pHook)
     {
+        IGameEvent* pEventCopy = nullptr;
+
+        if (!m_EventCopies.empty())
+        {
+            pEventCopy = m_EventCopies.top();
+            m_EventCopies.pop();
+        }
+        else
+        {
+            CSSHARP_CORE_WARN("OnFireEventPost: no event copy left for `{}`", pHook->m_Name);
+        }
+
         auto* pCallback = pHook->m_pPostHook;
 
-        if (pCallback)
+        if (pCallback && pEventCopy)
         {
             // VPROF_BUDGET("CS#::OnFireEventPost", "CS# Event Hooks");
 
-            auto pEventCopy = m_EventCopies.top();
             CSSHARP_CORE_TRACE("Pushing event `{}` pointer: {}, dont broadcast: {}, post: {}", pEventCopy->GetName(), (void*)pEventCopy,
                                bDontBroadcast, true);
             EventOverride override = { bDontBroadcast };
@@ -281,20 +308,13 @@ bool EventManager::OnFireEventPost(IGameEvent* pEvent, bool bDontBroadcast)
             pCallback->ScriptContext().Push(pEventCopy);
             pCallback->ScriptContext().Push(&override);
             pCallback->Execute();
+        }
 
-            if (pEventCopy)
-            {
-                globals::gameEventManager->FreeEvent(pEventCopy);
-                m_EventCopies.pop();
-            }
-            else
-            {
-                CSSHARP_CORE_WARN("OnFireEventPost: pEventCopy is nullptr, cannot free event");
-            }
+        if (pEventCopy)
+        {
+            globals::gameEventManager->FreeEvent(pEventCopy);
         }
     }
-
-    m_EventStack.pop();
 
     RETURN_META_VALUE(MRES_IGNORED, true);
 }

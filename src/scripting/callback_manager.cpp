@@ -50,17 +50,16 @@ bool ScriptCallback::RemoveListener(CallbackT fnPluginFunction)
 
 bool ScriptCallback::IsContextSafe()
 {
-    try
+    const int nArguments = m_root_context.numArguments;
+
+    if (nArguments < 0 || nArguments > ScriptContext::MaxArguments)
     {
-        auto& Ctx = ScriptContext();
-        Ctx.GetResult<void*>();
-        return true;
-    }
-    catch (...)
-    {
-        CSSHARP_CORE_WARN("Context is invalid (exception during access)");
+        CSSHARP_CORE_WARN("Context of callback '{}' is corrupt, numArguments is {}", m_name, nArguments);
+
         return false;
     }
+
+    return true;
 }
 
 void ScriptCallback::Execute(bool bResetContext)
@@ -80,8 +79,22 @@ void ScriptCallback::Execute(bool bResetContext)
 
     // VPROF_BUDGET(m_profile_name.c_str(), "CS# Script Callbacks");
 
-    for (size_t nI = 0; nI < m_functions.size(); ++nI)
+    const size_t nCount = m_functions.size();
+
+    for (size_t nI = 0; nI < nCount; ++nI)
     {
+        if (!IsAlive())
+        {
+            CSSHARP_CORE_WARN("ScriptCallback::Execute stopped: the callback was released by one of its own listeners");
+
+            return;
+        }
+
+        if (nI >= m_functions.size())
+        {
+            break;
+        }
+
         if (auto fnMethodToCall = m_functions[nI])
         {
             try
@@ -103,6 +116,13 @@ void ScriptCallback::Execute(bool bResetContext)
 
     if (bResetContext)
     {
+        if (!IsAlive())
+        {
+            CSSHARP_CORE_WARN("ScriptCallback::Execute: skipping reset, the callback was released during execution");
+
+            return;
+        }
+
         Reset();
     }
 }
