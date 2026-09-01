@@ -64,6 +64,9 @@ void ScriptContext::Reset()
     m_numArguments = 0;
     *m_has_error = 0;
 
+    m_native_context->numArguments = 0;
+    m_native_context->numResults = 0;
+
     for (int i = 0; i < 32; i++)
     {
         m_native_context->arguments[i] = 0;
