@@ -109,12 +109,6 @@ DLL_EXPORT void CrashReportManagedLog(int level, const char* message)
     counterstrikesharp::crash::PushLine(level, counterstrikesharp::crash::kSourceManaged, message);
 }
 
-DLL_EXPORT unsigned short CrashReportRegisterName(const char* name)
-{
-    return counterstrikesharp::crash::RegisterName(name);
-}
+DLL_EXPORT unsigned short CrashReportRegisterName(const char* name) { return counterstrikesharp::crash::RegisterName(name); }
 
-DLL_EXPORT void CrashReportBreadcrumb(unsigned short site, unsigned short name)
-{
-    counterstrikesharp::crash::Breadcrumb(site, name);
-}
+DLL_EXPORT void CrashReportBreadcrumb(unsigned short site, unsigned short name) { counterstrikesharp::crash::Breadcrumb(site, name); }

@@ -75,7 +75,7 @@ int CollectModule(struct dl_phdr_info* info, size_t, void* data)
 
     for (int index = 0; index < info->dlpi_phnum; ++index)
     {
-        const ElfW(Phdr)& header = info->dlpi_phdr[index];
+        const ElfW(Phdr) & header = info->dlpi_phdr[index];
         if (header.p_type == PT_LOAD)
         {
             uintptr_t start = entry.bias + header.p_vaddr;
@@ -111,8 +111,9 @@ void RefreshModules()
     SnapshotContext context{ g_state.modules[target], 0 };
     dl_iterate_phdr(&CollectModule, &context);
 
-    std::sort(g_state.modules[target], g_state.modules[target] + context.count,
-              [](const ModuleEntry& left, const ModuleEntry& right) { return left.start < right.start; });
+    std::sort(g_state.modules[target], g_state.modules[target] + context.count, [](const ModuleEntry& left, const ModuleEntry& right) {
+        return left.start < right.start;
+    });
 
     g_state.moduleCount[target].store(context.count, std::memory_order_release);
     g_state.activeSet.store(target, std::memory_order_release);
@@ -177,8 +178,8 @@ void AppendRunLog(const char* event)
     std::ofstream stream(g_crashDirectory + "/runs.jsonl", std::ios::app);
     if (!stream.is_open()) return;
 
-    stream << "{\"run\":\"" << g_state.runId << "\",\"event\":\"" << event << "\",\"unix\":" << (int64_t)time(nullptr)
-           << ",\"version\":\"" << g_state.version << "\",\"pid\":" << getpid() << "}\n";
+    stream << "{\"run\":\"" << g_state.runId << "\",\"event\":\"" << event << "\",\"unix\":" << (int64_t)time(nullptr) << ",\"version\":\""
+           << g_state.version << "\",\"pid\":" << getpid() << "}\n";
 }
 
 void SweepAndRotate()
@@ -220,12 +221,10 @@ void SweepAndRotate()
         if (name.rfind("crash-", 0) == 0) reports.push_back(entry);
     }
 
-    std::sort(reports.begin(), reports.end(),
-              [](const fs::directory_entry& left, const fs::directory_entry& right)
-              {
-                  std::error_code inner;
-                  return fs::last_write_time(left, inner) < fs::last_write_time(right, inner);
-              });
+    std::sort(reports.begin(), reports.end(), [](const fs::directory_entry& left, const fs::directory_entry& right) {
+        std::error_code inner;
+        return fs::last_write_time(left, inner) < fs::last_write_time(right, inner);
+    });
 
     uintmax_t total = 0;
     for (const auto& entry : reports)

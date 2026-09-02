@@ -45,7 +45,8 @@ unsigned char g_frameHow[kMaxFrames];
 size_t StrLen(const char* text)
 {
     size_t length = 0;
-    while (text != nullptr && text[length] != '\0' && length < 65536) length++;
+    while (text != nullptr && text[length] != '\0' && length < 65536)
+        length++;
     return length;
 }
 
@@ -100,9 +101,11 @@ void OutHex(uint64_t value, int width)
         value >>= 4;
     }
     if (count == 0) digits[count++] = '0';
-    while (count < width && count < 16) digits[count++] = '0';
+    while (count < width && count < 16)
+        digits[count++] = '0';
 
-    for (int index = count - 1; index >= 0; --index) OutRaw(&digits[index], 1);
+    for (int index = count - 1; index >= 0; --index)
+        OutRaw(&digits[index], 1);
 }
 
 void OutDec(int64_t value)
@@ -149,8 +152,7 @@ uint64_t ParseHex(const char* text, int* consumed)
     {
         char symbol = text[index];
         int digit;
-        if (symbol >= '0' && symbol <= '9')
-            digit = symbol - '0';
+        if (symbol >= '0' && symbol <= '9') digit = symbol - '0';
         else if (symbol >= 'a' && symbol <= 'f')
             digit = symbol - 'a' + 10;
         else if (symbol >= 'A' && symbol <= 'F')
@@ -175,7 +177,8 @@ void ParseMapsLine(const char* line, uintptr_t stackPointer)
     if (consumed == 0) return;
 
     cursor += consumed;
-    while (*cursor == ' ') cursor++;
+    while (*cursor == ' ')
+        cursor++;
     if (StrLen(cursor) < 4) return;
 
     bool executable = cursor[2] == 'x';
@@ -184,11 +187,14 @@ void ParseMapsLine(const char* line, uintptr_t stackPointer)
     int fields = 0;
     while (*cursor != '\0' && fields < 3)
     {
-        while (*cursor == ' ') cursor++;
-        while (*cursor != '\0' && *cursor != ' ') cursor++;
+        while (*cursor == ' ')
+            cursor++;
+        while (*cursor != '\0' && *cursor != ' ')
+            cursor++;
         fields++;
     }
-    while (*cursor == ' ') cursor++;
+    while (*cursor == ' ')
+        cursor++;
 
     if (stackPointer >= start && stackPointer < end)
     {
@@ -272,8 +278,7 @@ const ModuleEntry* FindModule(uintptr_t address)
     while (low <= high)
     {
         int middle = low + (high - low) / 2;
-        if (address < modules[middle].start)
-            high = middle - 1;
+        if (address < modules[middle].start) high = middle - 1;
         else if (address >= modules[middle].end)
             low = middle + 1;
         else
@@ -297,8 +302,7 @@ bool LooksLikeReturnAddress(uintptr_t address)
     {
         int base = 16 - length;
         if (window[base] == 0xFF && ((window[base + 1] >> 3) & 7) == 2) return true;
-        if (length >= 3 && window[base] >= 0x40 && window[base] <= 0x4F && window[base + 1] == 0xFF &&
-            ((window[base + 2] >> 3) & 7) == 2)
+        if (length >= 3 && window[base] >= 0x40 && window[base] <= 0x4F && window[base + 1] == 0xFF && ((window[base + 2] >> 3) & 7) == 2)
             return true;
     }
 
@@ -387,7 +391,8 @@ const char* Verdict(int signalNumber, const siginfo_t* info, uintptr_t instructi
     }
 
     const ModuleEntry* module = FindModule(instructionPointer);
-    const bool inEngineCore = module != nullptr && (strncmp(module->name, "libtier0", 8) == 0 || strncmp(module->name, "libengine2", 10) == 0);
+    const bool inEngineCore =
+        module != nullptr && (strncmp(module->name, "libtier0", 8) == 0 || strncmp(module->name, "libengine2", 10) == 0);
 
     const FatalSlot* fatal = NewestFatal();
     if (inEngineCore && fatal != nullptr && NowMs() - fatal->stampMs <= 2000) return "engine_fatal";
@@ -631,8 +636,7 @@ void SectionManaged()
                 break;
         }
         Out(" name=");
-        if (crumb.name > 0 && (int)crumb.name <= nameCount)
-            OutSafe(g_state.names[crumb.name - 1], kNameLen);
+        if (crumb.name > 0 && (int)crumb.name <= nameCount) OutSafe(g_state.names[crumb.name - 1], kNameLen);
         else
             Out("?");
         Out("\n");
@@ -670,7 +674,8 @@ void SectionRawStack(uintptr_t stackPointer)
         if (!SafeRead(address, bytes, sizeof(bytes))) break;
         OutHex(address - stackPointer, 4);
         Out(" ");
-        for (size_t index = 0; index < sizeof(bytes); ++index) OutHex(bytes[index], 2);
+        for (size_t index = 0; index < sizeof(bytes); ++index)
+            OutHex(bytes[index], 2);
         Out("\n");
     }
 
@@ -751,15 +756,21 @@ void StderrLine(const char* verdict)
     char line[kPathLen + 128];
     size_t used = 0;
     const char* prefix = "CSSHARP-CRASH run=";
-    for (const char* cursor = prefix; *cursor != '\0'; ++cursor) line[used++] = *cursor;
-    for (const char* cursor = g_state.runId; *cursor != '\0' && used < sizeof(line) - 2; ++cursor) line[used++] = *cursor;
+    for (const char* cursor = prefix; *cursor != '\0'; ++cursor)
+        line[used++] = *cursor;
+    for (const char* cursor = g_state.runId; *cursor != '\0' && used < sizeof(line) - 2; ++cursor)
+        line[used++] = *cursor;
     const char* middle = " verdict=";
-    for (const char* cursor = middle; *cursor != '\0'; ++cursor) line[used++] = *cursor;
-    for (const char* cursor = verdict; *cursor != '\0' && used < sizeof(line) - 2; ++cursor) line[used++] = *cursor;
+    for (const char* cursor = middle; *cursor != '\0'; ++cursor)
+        line[used++] = *cursor;
+    for (const char* cursor = verdict; *cursor != '\0' && used < sizeof(line) - 2; ++cursor)
+        line[used++] = *cursor;
     const char* tail = " file=";
-    for (const char* cursor = tail; *cursor != '\0'; ++cursor) line[used++] = *cursor;
+    for (const char* cursor = tail; *cursor != '\0'; ++cursor)
+        line[used++] = *cursor;
     const char* path = g_state.finalPath[0] != '\0' ? g_state.finalPath : g_state.fallbackPath;
-    for (const char* cursor = path; *cursor != '\0' && used < sizeof(line) - 2; ++cursor) line[used++] = *cursor;
+    for (const char* cursor = path; *cursor != '\0' && used < sizeof(line) - 2; ++cursor)
+        line[used++] = *cursor;
     line[used++] = '\n';
 
     ssize_t ignored = write(STDERR_FILENO, line, used);
@@ -947,9 +958,11 @@ void MakeFallbackPath()
         g_state.fallbackPath[used] = prefix[used];
         used++;
     }
-    for (int index = 0; index < 16; ++index) g_state.fallbackPath[used++] = g_state.runId[index];
+    for (int index = 0; index < 16; ++index)
+        g_state.fallbackPath[used++] = g_state.runId[index];
     const char* suffix = ".txt";
-    for (int index = 0; index < 4; ++index) g_state.fallbackPath[used++] = suffix[index];
+    for (int index = 0; index < 4; ++index)
+        g_state.fallbackPath[used++] = suffix[index];
     g_state.fallbackPath[used] = '\0';
 }
 
