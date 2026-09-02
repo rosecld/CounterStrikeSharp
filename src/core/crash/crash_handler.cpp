@@ -750,7 +750,7 @@ void SectionBlame(int frameCount)
     Out("[BLAME]\n");
 
     int32_t before = g_state.jitCount.load(std::memory_order_acquire);
-    PumpPerfMap();
+    PumpPerfMap(256);
     int32_t after = g_state.jitCount.load(std::memory_order_acquire);
 
     if (g_state.perfMapPath[0] == '\0')

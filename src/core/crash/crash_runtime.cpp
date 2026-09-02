@@ -365,7 +365,7 @@ void OnAllPluginsLoaded()
 
     RefreshModules();
     WriteManifest();
-    PumpPerfMap();
+    PumpPerfMap(64);
 
     struct sigaction current;
     if (sigaction(SIGSEGV, nullptr, &current) != 0) return;
@@ -396,7 +396,7 @@ void OnMapChange(const char* mapName)
 
     RefreshModules();
     WriteManifest();
-    PumpPerfMap();
+    PumpPerfMap(64);
 
     CSSHARP_CORE_INFO("Crash reporter: run {} still armed, map {}", g_state.runId, g_state.mapName);
 }
@@ -536,7 +536,7 @@ void IndexPerfMapLine(const char* line, size_t length, int64_t fileOffset)
 
 } // namespace
 
-void PumpPerfMap()
+void PumpPerfMap(int chunks)
 {
     if (g_state.perfMapPath[0] == '\0') return;
 
@@ -545,9 +545,11 @@ void PumpPerfMap()
 
     if (g_state.perfMapFd < 0) g_state.perfMapFd = open(g_state.perfMapPath, O_RDONLY | O_CLOEXEC);
 
-    if (g_state.perfMapFd >= 0)
+    for (int pass = 0; pass < chunks && g_state.perfMapFd >= 0; ++pass)
     {
         ssize_t got = pread(g_state.perfMapFd, g_pumpBuffer, sizeof(g_pumpBuffer), (off_t)g_state.perfMapOffset);
+        if (got <= 0) break;
+
         ssize_t lastNewline = -1;
         for (ssize_t index = got - 1; index >= 0; --index)
         {
@@ -558,18 +560,18 @@ void PumpPerfMap()
             }
         }
 
-        if (lastNewline >= 0)
+        if (lastNewline < 0) break;
+
+        int64_t base = g_state.perfMapOffset;
+        ssize_t lineStart = 0;
+        for (ssize_t index = 0; index <= lastNewline; ++index)
         {
-            int64_t base = g_state.perfMapOffset;
-            ssize_t lineStart = 0;
-            for (ssize_t index = 0; index <= lastNewline; ++index)
-            {
-                if (g_pumpBuffer[index] != '\n') continue;
-                if (index > lineStart) IndexPerfMapLine(g_pumpBuffer + lineStart, (size_t)(index - lineStart), base + lineStart);
-                lineStart = index + 1;
-            }
-            g_state.perfMapOffset = base + lastNewline + 1;
+            if (g_pumpBuffer[index] != '\n') continue;
+            if (index > lineStart) IndexPerfMapLine(g_pumpBuffer + lineStart, (size_t)(index - lineStart), base + lineStart);
+            lineStart = index + 1;
         }
+
+        g_state.perfMapOffset = base + lastNewline + 1;
     }
 
     g_pumpBusy.store(false, std::memory_order_release);
@@ -640,7 +642,7 @@ uint16_t RegisterName(const char*) { return 0; }
 void Breadcrumb(uint16_t, uint16_t) {}
 void PushCommand(const char*) {}
 void SetTick(int32_t) {}
-void PumpPerfMap() {}
+void PumpPerfMap(int) {}
 void PushLine(int, int, const char*) {}
 
 } // namespace counterstrikesharp::crash

@@ -268,17 +268,17 @@ void CounterStrikeSharpMMPlugin::Hook_GameFrame(bool simulating, bool bFirstTick
     // VPROF_BUDGET("CS#::Hook_GameFrame", "CS# On Frame");
     globals::timerSystem.OnGameFrame(simulating);
 
-    auto* vars = globals::getGlobalVars();
-    if (vars == nullptr) return;
-
-    crash::SetTick(vars->tickcount);
-
     static int perfMapPump = 0;
     if (++perfMapPump >= 64)
     {
         perfMapPump = 0;
-        crash::PumpPerfMap();
+        crash::PumpPerfMap(16);
     }
+
+    auto* vars = globals::getGlobalVars();
+    if (vars == nullptr) return;
+
+    crash::SetTick(vars->tickcount);
 
     auto callbacks = globals::tickScheduler.getCallbacks(vars->tickcount);
     if (callbacks.size() > 0)
