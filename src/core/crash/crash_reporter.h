@@ -32,6 +32,7 @@ uint16_t RegisterName(const char* name);
 void Breadcrumb(uint16_t site, uint16_t name);
 void PushCommand(const char* name);
 void SetTick(int32_t tick);
+void PumpPerfMap();
 void PushLine(int severity, int source, const char* text);
 
 } // namespace counterstrikesharp::crash

@@ -23,6 +23,15 @@ constexpr int kScanWordBudget = 4096;
 constexpr int kStackDumpBytes = 8192;
 constexpr int kPathLen = 512;
 constexpr int kSignalSlots = 64;
+constexpr int kMaxJitEntries = 65536;
+
+struct JitEntry
+{
+    uintptr_t start{ 0 };
+    uint32_t size{ 0 };
+    uint32_t length{ 0 };
+    int64_t offset{ 0 };
+};
 
 struct ModuleEntry
 {
@@ -84,8 +93,12 @@ struct State
     std::atomic<int32_t> nameCount{ 0 };
     std::atomic<int32_t> moduleCount[2]{};
     std::atomic<int32_t> activeSet{ 0 };
+    std::atomic<int32_t> jitCount{ 0 };
+    std::atomic<int32_t> jitDropped{ 0 };
 
     int reportFd{ -1 };
+    int perfMapFd{ -1 };
+    int64_t perfMapOffset{ 0 };
     int probeRead{ -1 };
     int probeWrite{ -1 };
     int64_t startedMs{ 0 };
@@ -104,6 +117,7 @@ struct State
     char version[64]{};
 
     ModuleEntry modules[2][kMaxModules]{};
+    JitEntry jit[kMaxJitEntries]{};
     char names[kMaxNames][kNameLen]{};
     LineSlot lines[kLineSlots]{};
     FatalSlot fatal[kFatalSlots]{};

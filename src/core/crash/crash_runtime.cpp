@@ -316,9 +316,9 @@ void OnEarlyLoad()
     ResolveFatalError();
 
     const char* perfMap = getenv("CSSHARP_CRASH_PERFMAP");
-    if (perfMap != nullptr && perfMap[0] == '1')
+    if (perfMap == nullptr || perfMap[0] != '0')
     {
-        setenv("DOTNET_PerfMapEnabled", "1", 0);
+        setenv("DOTNET_PerfMapEnabled", "3", 0);
         CopyInto(g_state.perfMapPath, kPathLen, "/tmp/perf-" + std::to_string(getpid()) + ".map");
     }
 
@@ -365,6 +365,7 @@ void OnAllPluginsLoaded()
 
     RefreshModules();
     WriteManifest();
+    PumpPerfMap();
 
     struct sigaction current;
     if (sigaction(SIGSEGV, nullptr, &current) != 0) return;
@@ -395,6 +396,7 @@ void OnMapChange(const char* mapName)
 
     RefreshModules();
     WriteManifest();
+    PumpPerfMap();
 
     CSSHARP_CORE_INFO("Crash reporter: run {} still armed, map {}", g_state.runId, g_state.mapName);
 }
@@ -465,6 +467,116 @@ void PushCommand(const char* name)
 
 void SetTick(int32_t tick) { g_state.tick.store(tick, std::memory_order_relaxed); }
 
+namespace {
+
+char g_pumpBuffer[65536];
+std::atomic<bool> g_pumpBusy{ false };
+
+uint64_t ParseHexToken(const char* text, size_t length, size_t* consumed)
+{
+    size_t index = 0;
+    if (index + 1 < length && text[index] == '0' && (text[index + 1] == 'x' || text[index + 1] == 'X')) index += 2;
+
+    uint64_t value = 0;
+    size_t digits = 0;
+    while (index < length)
+    {
+        char symbol = text[index];
+        int digit;
+        if (symbol >= '0' && symbol <= '9') digit = symbol - '0';
+        else if (symbol >= 'a' && symbol <= 'f')
+            digit = symbol - 'a' + 10;
+        else if (symbol >= 'A' && symbol <= 'F')
+            digit = symbol - 'A' + 10;
+        else
+            break;
+
+        value = (value << 4) | (uint64_t)digit;
+        index++;
+        digits++;
+    }
+
+    *consumed = digits > 0 ? index : 0;
+    return value;
+}
+
+void IndexPerfMapLine(const char* line, size_t length, int64_t fileOffset)
+{
+    size_t consumed = 0;
+    uint64_t start = ParseHexToken(line, length, &consumed);
+    if (consumed == 0) return;
+
+    size_t cursor = consumed;
+    while (cursor < length && line[cursor] == ' ')
+        cursor++;
+
+    uint64_t size = ParseHexToken(line + cursor, length - cursor, &consumed);
+    if (consumed == 0) return;
+
+    cursor += consumed;
+    while (cursor < length && line[cursor] == ' ')
+        cursor++;
+    if (cursor >= length) return;
+
+    int32_t count = g_state.jitCount.load(std::memory_order_relaxed);
+    if (count >= kMaxJitEntries)
+    {
+        g_state.jitDropped.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
+    JitEntry& entry = g_state.jit[count];
+    entry.start = (uintptr_t)start;
+    entry.size = (uint32_t)size;
+    entry.offset = fileOffset + (int64_t)cursor;
+    entry.length = (uint32_t)(length - cursor);
+
+    g_state.jitCount.store(count + 1, std::memory_order_release);
+}
+
+} // namespace
+
+void PumpPerfMap()
+{
+    if (Disabled() || g_state.perfMapPath[0] == ' ') return;
+
+    bool expected = false;
+    if (!g_pumpBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
+
+    if (g_state.perfMapFd < 0) g_state.perfMapFd = open(g_state.perfMapPath, O_RDONLY | O_CLOEXEC);
+
+    if (g_state.perfMapFd >= 0)
+    {
+        ssize_t got = pread(g_state.perfMapFd, g_pumpBuffer, sizeof(g_pumpBuffer), (off_t)g_state.perfMapOffset);
+        ssize_t lastNewline = -1;
+        for (ssize_t index = got - 1; index >= 0; --index)
+        {
+            if (g_pumpBuffer[index] == '
+')
+            {
+                lastNewline = index;
+                break;
+            }
+        }
+
+        if (lastNewline >= 0)
+        {
+            int64_t base = g_state.perfMapOffset;
+            ssize_t lineStart = 0;
+            for (ssize_t index = 0; index <= lastNewline; ++index)
+            {
+                if (g_pumpBuffer[index] != '
+') continue;
+                if (index > lineStart) IndexPerfMapLine(g_pumpBuffer + lineStart, (size_t)(index - lineStart), base + lineStart);
+                lineStart = index + 1;
+            }
+            g_state.perfMapOffset = base + lastNewline + 1;
+        }
+    }
+
+    g_pumpBusy.store(false, std::memory_order_release);
+}
+
 void PushLine(int severity, int source, const char* text)
 {
     if (text == nullptr || text[0] == '\0') return;
@@ -530,6 +642,7 @@ uint16_t RegisterName(const char*) { return 0; }
 void Breadcrumb(uint16_t, uint16_t) {}
 void PushCommand(const char*) {}
 void SetTick(int32_t) {}
+void PumpPerfMap() {}
 void PushLine(int, int, const char*) {}
 
 } // namespace counterstrikesharp::crash
