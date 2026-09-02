@@ -824,7 +824,7 @@ void Handle(int signalNumber, siginfo_t* info, void* contextPointer)
         const ucontext_t* triage = (const ucontext_t*)contextPointer;
         uintptr_t faultIp = (uintptr_t)triage->uc_mcontext.gregs[REG_RIP];
 
-        if (FindModule(faultIp) == nullptr)
+        if (FindModule(faultIp) == nullptr && InAnonExec(faultIp))
         {
             errno = savedErrno;
             InvokePrevious(signalNumber, info, contextPointer);
