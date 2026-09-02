@@ -268,13 +268,16 @@ void CounterStrikeSharpMMPlugin::Hook_GameFrame(bool simulating, bool bFirstTick
     // VPROF_BUDGET("CS#::Hook_GameFrame", "CS# On Frame");
     globals::timerSystem.OnGameFrame(simulating);
 
-    if (auto* vars = globals::getGlobalVars()) crash::SetTick(vars->tickcount);
+    auto* vars = globals::getGlobalVars();
+    if (vars == nullptr) return;
 
-    auto callbacks = globals::tickScheduler.getCallbacks(globals::getGlobalVars()->tickcount);
+    crash::SetTick(vars->tickcount);
+
+    auto callbacks = globals::tickScheduler.getCallbacks(vars->tickcount);
     if (callbacks.size() > 0)
     {
         CSSHARP_CORE_TRACE("Executing frame specific tasks of size: {0} on tick number {1}", callbacks.size(),
-                           globals::getGlobalVars()->tickcount);
+                           vars->tickcount);
 
         for (auto& callback : callbacks)
         {
