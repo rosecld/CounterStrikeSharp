@@ -359,6 +359,8 @@ void OnPathsReady(const char* rootDirectory)
 
 void OnAllPluginsLoaded()
 {
+    Arm();
+
     if (Disabled()) return;
 
     RefreshModules();
@@ -518,6 +520,7 @@ namespace counterstrikesharp::crash {
 
 void OnEarlyLoad() {}
 void OnPathsReady(const char*) {}
+void Arm() {}
 void OnAllPluginsLoaded() {}
 void OnMapChange(const char*) {}
 void OnUnload() {}

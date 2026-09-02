@@ -20,6 +20,7 @@ enum LineSource : int
 
 void OnEarlyLoad();
 void OnPathsReady(const char* rootDirectory);
+void Arm();
 void OnAllPluginsLoaded();
 void OnMapChange(const char* mapName);
 void OnUnload();

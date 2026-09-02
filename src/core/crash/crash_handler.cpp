@@ -819,6 +819,19 @@ void InvokePrevious(int signalNumber, siginfo_t* info, void* context)
 void Handle(int signalNumber, siginfo_t* info, void* contextPointer)
 {
     int savedErrno = errno;
+
+    {
+        const ucontext_t* triage = (const ucontext_t*)contextPointer;
+        uintptr_t faultIp = (uintptr_t)triage->uc_mcontext.gregs[REG_RIP];
+
+        if (FindModule(faultIp) == nullptr)
+        {
+            errno = savedErrno;
+            InvokePrevious(signalNumber, info, contextPointer);
+            return;
+        }
+    }
+
     bool expected = false;
 
     if (g_state.handlerBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
@@ -966,7 +979,7 @@ void MakeFallbackPath()
     g_state.fallbackPath[used] = '\0';
 }
 
-__attribute__((constructor)) void InstallHandler()
+__attribute__((constructor)) void EarlyInit()
 {
     g_state.reportFd = -1;
     g_state.probeRead = -1;
@@ -978,6 +991,13 @@ __attribute__((constructor)) void InstallHandler()
     MakeRunId();
     MakeFallbackPath();
 
+    NoteInstall("early init done, waiting for the .NET runtime before arming");
+}
+
+void ArmHandler()
+{
+    if (g_state.installed.load(std::memory_order_acquire)) return;
+
     const char* toggle = getenv("CSSHARP_CRASH_REPORTER");
     if (toggle != nullptr && toggle[0] == '0')
     {
@@ -985,9 +1005,9 @@ __attribute__((constructor)) void InstallHandler()
         return;
     }
 
-    if (CoreClrAlreadyMapped())
+    if (!CoreClrAlreadyMapped())
     {
-        NoteInstall("refused: libcoreclr.so is already mapped, installing now would put us in front of the runtime");
+        NoteInstall("refused: the .NET runtime is not mapped yet, arming now would leave us behind it in the chain");
         return;
     }
 
@@ -1016,10 +1036,12 @@ __attribute__((constructor)) void InstallHandler()
     }
 
     g_state.installed.store(true, std::memory_order_release);
-    NoteInstall("installed from library constructor, before the .NET runtime exists");
+    NoteInstall("armed after the .NET runtime, faults outside known modules are handed straight back to it");
 }
 
 } // namespace
+
+void Arm() { ArmHandler(); }
 
 bool IsInstalled() { return g_state.installed.load(std::memory_order_acquire); }
 
