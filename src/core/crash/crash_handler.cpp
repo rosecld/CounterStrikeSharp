@@ -17,7 +17,7 @@
 
 namespace counterstrikesharp::crash {
 
-State g_state;
+constinit State g_state;
 
 namespace {
 
