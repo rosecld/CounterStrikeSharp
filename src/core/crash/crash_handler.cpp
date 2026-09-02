@@ -833,22 +833,43 @@ void SectionBlame(int frameCount)
 
         if (shown == 0) Out("managed-frame none\n");
 
-        for (int index = 0; index < count && index < 3; ++index)
+        for (int index = count - 5 > 0 ? count - 5 : 0; index < count; ++index)
         {
             const JitEntry& entry = g_state.jit[index];
-            char sample[160];
+            char sample[200];
             size_t want = entry.length < sizeof(sample) - 1 ? entry.length : sizeof(sample) - 1;
             ssize_t got = pread(g_state.perfMapFd, sample, want, (off_t)entry.offset);
             if (got <= 0) continue;
             sample[got] = '\0';
 
-            Out("sample ");
+            Out("last-entry ");
             OutPointer(entry.start);
             Out(" size=0x");
             OutHex(entry.size, 0);
             Out(" ");
             Out(sample);
             Out("\n");
+        }
+
+        off_t mapSize = lseek(g_state.perfMapFd, 0, SEEK_END);
+        Out("map-bytes=");
+        OutDec((int)mapSize);
+        Out("\n");
+
+        if (mapSize > 0)
+        {
+            char tail[2048];
+            off_t from = mapSize > (off_t)sizeof(tail) - 1 ? mapSize - ((off_t)sizeof(tail) - 1) : 0;
+            ssize_t got = pread(g_state.perfMapFd, tail, sizeof(tail) - 1, from);
+            if (got > 0)
+            {
+                tail[got] = '\0';
+                Out("map-tail-from=");
+                OutDec((int)from);
+                Out("\n");
+                Out(tail);
+                Out("\n");
+            }
         }
 
         OutFlush();
