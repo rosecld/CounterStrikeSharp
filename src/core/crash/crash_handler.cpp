@@ -23,6 +23,7 @@ namespace {
 
 constexpr int kTrackedSignals[] = { SIGSEGV, SIGBUS, SIGILL, SIGFPE, SIGABRT };
 constexpr int kMaxAnonRegions = 128;
+constexpr int kMaxReports = 3;
 
 struct Region
 {
@@ -816,32 +817,48 @@ void InvokePrevious(int signalNumber, siginfo_t* info, void* context)
     previous.sa_handler(signalNumber);
 }
 
+bool RuntimeOwnsFault(uintptr_t faultIp)
+{
+    const ModuleEntry* module = FindModule(faultIp);
+    if (module == nullptr) return InAnonExec(faultIp);
+
+    size_t length = StrLen(module->name);
+    if (length < 4) return false;
+
+    const char* tail = module->name + (length - 4);
+    return tail[0] == '.' && tail[1] == 'd' && tail[2] == 'l' && tail[3] == 'l';
+}
+
 void Handle(int signalNumber, siginfo_t* info, void* contextPointer)
 {
     int savedErrno = errno;
 
-    {
-        const ucontext_t* triage = (const ucontext_t*)contextPointer;
-        uintptr_t faultIp = (uintptr_t)triage->uc_mcontext.gregs[REG_RIP];
-
-        if (FindModule(faultIp) == nullptr && InAnonExec(faultIp))
-        {
-            errno = savedErrno;
-            InvokePrevious(signalNumber, info, contextPointer);
-            return;
-        }
-    }
+    const ucontext_t* context = (const ucontext_t*)contextPointer;
+    uintptr_t instructionPointer = (uintptr_t)context->uc_mcontext.gregs[REG_RIP];
+    uintptr_t stackPointer = (uintptr_t)context->uc_mcontext.gregs[REG_RSP];
+    uintptr_t framePointer = (uintptr_t)context->uc_mcontext.gregs[REG_RBP];
 
     bool expected = false;
 
     if (g_state.handlerBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
     {
-        const ucontext_t* context = (const ucontext_t*)contextPointer;
-        uintptr_t instructionPointer = (uintptr_t)context->uc_mcontext.gregs[REG_RIP];
-        uintptr_t stackPointer = (uintptr_t)context->uc_mcontext.gregs[REG_RSP];
-        uintptr_t framePointer = (uintptr_t)context->uc_mcontext.gregs[REG_RBP];
-
         ScanMaps(stackPointer);
+
+        if (RuntimeOwnsFault(instructionPointer))
+        {
+            g_state.handlerBusy.store(false, std::memory_order_release);
+            errno = savedErrno;
+            InvokePrevious(signalNumber, info, contextPointer);
+            return;
+        }
+
+        if (g_state.reportsWritten.fetch_add(1, std::memory_order_acq_rel) >= kMaxReports)
+        {
+            g_state.handlerBusy.store(false, std::memory_order_release);
+            errno = savedErrno;
+            InvokePrevious(signalNumber, info, contextPointer);
+            return;
+        }
 
         const char* verdict = Verdict(signalNumber, info, instructionPointer);
 
@@ -881,9 +898,11 @@ void Handle(int signalNumber, siginfo_t* info, void* contextPointer)
             off_t size = lseek(g_outFd, 0, SEEK_CUR);
             if (g_outFd == g_state.reportFd && size > 0) ftruncate(g_outFd, size);
             if (g_outFd == g_state.reportFd && g_state.finalPath[0] != '\0') rename(g_state.reportPath, g_state.finalPath);
+            if (g_outFd == g_state.reportFd) g_state.reportFd = -1;
         }
 
         StderrLine(verdict);
+        g_state.handlerBusy.store(false, std::memory_order_release);
     }
     else
     {
