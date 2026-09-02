@@ -73,6 +73,7 @@ struct State
 {
     std::atomic<bool> installed{ false };
     std::atomic<bool> handlerBusy{ false };
+    std::atomic<int> reportsWritten{ 0 };
     std::atomic<bool> consoleVerified{ false };
     std::atomic<bool> cleanExit{ false };
     std::atomic<uint32_t> lineCursor{ 0 };
