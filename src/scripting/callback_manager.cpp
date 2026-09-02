@@ -18,6 +18,7 @@
 
 #include <algorithm>
 
+#include "core/crash/crash_reporter.h"
 #include "core/log.h"
 #include "vprof.h"
 
@@ -29,6 +30,7 @@ ScriptCallback::ScriptCallback(const char* szName) : m_root_context(fxNativeCont
     m_script_context_raw = ScriptContextRaw(m_root_context);
     m_name = std::string(szName);
     m_profile_name = "ScriptCallback::Execute::" + m_name;
+    m_crumb_name = crash::RegisterName(m_name.empty() ? "unnamed-callback" : m_name.c_str());
 }
 
 ScriptCallback::~ScriptCallback()
@@ -78,6 +80,8 @@ void ScriptCallback::Execute(bool bResetContext)
     }
 
     // VPROF_BUDGET(m_profile_name.c_str(), "CS# Script Callbacks");
+
+    crash::Breadcrumb(crash::kSiteCallback, m_crumb_name);
 
     const size_t nCount = m_functions.size();
 

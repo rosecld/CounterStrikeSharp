@@ -49,6 +49,7 @@ class ScriptCallback
     std::vector<CallbackT> m_functions;
     std::string m_name;
     std::string m_profile_name;
+    uint16_t m_crumb_name;
     ScriptContextRaw m_script_context_raw;
     fxNativeContext m_root_context;
 };

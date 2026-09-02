@@ -43,6 +43,7 @@
 #include <algorithm>
 
 #include "core/coreconfig.h"
+#include "core/crash/crash_reporter.h"
 #include "core/log.h"
 #include "core/memory.h"
 #include "core/utils.h"
@@ -470,6 +471,8 @@ HookResult ConCommandManager::ExecuteCommandCallbacks(
 void ConCommandManager::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext& ctx, const CCommand& args)
 {
     const char* name = args.Arg(0);
+
+    crash::PushCommand(name);
 
     CSSHARP_CORE_TRACE("[ConCommandManager::Hook_DispatchConCommand]: {}", name);
 

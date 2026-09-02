@@ -18,6 +18,7 @@
 
 #include "core/detours.h"
 #include "core/coreconfig.h"
+#include "core/crash/crash_reporter.h"
 #include "core/game_system.h"
 #include "core/gameconfig.h"
 #include "core/gameconfig_updater.h"
@@ -101,6 +102,8 @@ bool CounterStrikeSharpMMPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, s
 
     Log::Init();
 
+    crash::OnEarlyLoad();
+
     CSSHARP_CORE_INFO("Initializing with command line: {}", CommandLine()->GetCmdLine());
     const char* basePath = CommandLine()->ParmValue(MakeStringToken("+css_basepath"), "/addons/counterstrikesharp");
 
@@ -126,6 +129,8 @@ bool CounterStrikeSharpMMPlugin::Load(PluginId id, ISmmAPI* ismm, char* error, s
         return false;
     }
     CSSHARP_CORE_INFO("Current root directory: {}", utils::GetRootDirectory());
+
+    crash::OnPathsReady(utils::GetRootDirectory().c_str());
 
     auto coreconfig_path = std::string(utils::ConfigsDirectory() + "/core");
     globals::coreConfig = new CCoreConfig(coreconfig_path);
@@ -214,12 +219,16 @@ void CounterStrikeSharpMMPlugin::Hook_StartupServer(const GameSessionConfigurati
 
     globals::timerSystem.OnStartupServer();
 
+    crash::OnMapChange(globals::getGlobalVars()->mapname.ToCStr());
+
     on_activate_callback->ScriptContext().Reset();
     on_activate_callback->ScriptContext().Push(globals::getGlobalVars()->mapname.ToCStr());
     on_activate_callback->Execute();
 }
 bool CounterStrikeSharpMMPlugin::Unload(char* error, size_t maxlen)
 {
+    crash::OnUnload();
+
     SH_REMOVE_HOOK_MEMFUNC(IServerGameDLL, GameFrame, globals::server, this, &CounterStrikeSharpMMPlugin::Hook_GameFrame, true);
     SH_REMOVE_HOOK_MEMFUNC(INetworkServerService, StartupServer, globals::networkServerService, this,
                            &CounterStrikeSharpMMPlugin::Hook_StartupServer, true);
@@ -234,6 +243,8 @@ bool CounterStrikeSharpMMPlugin::Unload(char* error, size_t maxlen)
 
 void CounterStrikeSharpMMPlugin::AllPluginsLoaded()
 {
+    crash::OnAllPluginsLoaded();
+
     /* This is where we'd do stuff that relies on the mod or other plugins
      * being initialized (for example, cvars added and events registered).
      */
@@ -256,6 +267,8 @@ void CounterStrikeSharpMMPlugin::Hook_GameFrame(bool simulating, bool bFirstTick
      */
     // VPROF_BUDGET("CS#::Hook_GameFrame", "CS# On Frame");
     globals::timerSystem.OnGameFrame(simulating);
+
+    if (auto* vars = globals::getGlobalVars()) crash::SetTick(vars->tickcount);
 
     auto callbacks = globals::tickScheduler.getCallbacks(globals::getGlobalVars()->tickcount);
     if (callbacks.size() > 0)

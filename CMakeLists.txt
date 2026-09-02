@@ -53,6 +53,11 @@ set(SOURCE_FILES
     src/core/gameconfig_updater.cpp
     src/core/log.h
     src/core/log.cpp
+    src/core/crash/crash_reporter.h
+    src/core/crash/crash_state.h
+    src/core/crash/crash_handler.cpp
+    src/core/crash/crash_runtime.cpp
+    src/core/crash/crash_console.cpp
     src/scripting/script_engine.h
     src/scripting/script_engine.cpp
     src/core/global_listener.h
