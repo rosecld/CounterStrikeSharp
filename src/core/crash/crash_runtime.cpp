@@ -538,7 +538,7 @@ void IndexPerfMapLine(const char* line, size_t length, int64_t fileOffset)
 
 void PumpPerfMap()
 {
-    if (Disabled() || g_state.perfMapPath[0] == ' ') return;
+    if (Disabled() || g_state.perfMapPath[0] == '\0') return;
 
     bool expected = false;
     if (!g_pumpBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
@@ -551,8 +551,7 @@ void PumpPerfMap()
         ssize_t lastNewline = -1;
         for (ssize_t index = got - 1; index >= 0; --index)
         {
-            if (g_pumpBuffer[index] == '
-')
+            if (g_pumpBuffer[index] == '\n')
             {
                 lastNewline = index;
                 break;
@@ -565,8 +564,7 @@ void PumpPerfMap()
             ssize_t lineStart = 0;
             for (ssize_t index = 0; index <= lastNewline; ++index)
             {
-                if (g_pumpBuffer[index] != '
-') continue;
+                if (g_pumpBuffer[index] != '\n') continue;
                 if (index > lineStart) IndexPerfMapLine(g_pumpBuffer + lineStart, (size_t)(index - lineStart), base + lineStart);
                 lineStart = index + 1;
             }
