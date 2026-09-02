@@ -66,6 +66,7 @@ struct FatalSlot
 struct Crumb
 {
     std::atomic<uint32_t> state{ 0 };
+    std::atomic<uint32_t> repeats{ 0 };
     int32_t tick{ 0 };
     uint16_t site{ 0 };
     uint16_t name{ 0 };

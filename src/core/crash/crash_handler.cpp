@@ -701,6 +701,14 @@ void SectionManaged()
         if (crumb.name > 0 && (int)crumb.name <= nameCount) OutSafe(g_state.names[crumb.name - 1], kNameLen);
         else
             Out("?");
+
+        uint32_t repeats = crumb.repeats.load(std::memory_order_acquire);
+        if (repeats > 0)
+        {
+            Out(" x");
+            OutDec((int)(repeats + 1));
+        }
+
         Out("\n");
     }
 

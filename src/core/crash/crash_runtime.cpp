@@ -441,10 +441,23 @@ uint16_t RegisterName(const char* name)
 
 void Breadcrumb(uint16_t site, uint16_t name)
 {
+    uint32_t cursor = g_state.crumbCursor.load(std::memory_order_acquire);
+    if (cursor > 0)
+    {
+        Crumb& previous = g_state.crumbs[(cursor - 1) % kCrumbSlots];
+        if (previous.state.load(std::memory_order_acquire) == 2 && previous.site == site && previous.name == name)
+        {
+            previous.repeats.fetch_add(1, std::memory_order_relaxed);
+            previous.tick = g_state.tick.load(std::memory_order_relaxed);
+            return;
+        }
+    }
+
     uint32_t index = g_state.crumbCursor.fetch_add(1, std::memory_order_acq_rel);
     Crumb& crumb = g_state.crumbs[index % kCrumbSlots];
 
     crumb.state.store(1, std::memory_order_release);
+    crumb.repeats.store(0, std::memory_order_relaxed);
     crumb.site = site;
     crumb.name = name;
     crumb.tick = g_state.tick.load(std::memory_order_relaxed);
