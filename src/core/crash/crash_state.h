@@ -26,47 +26,47 @@ constexpr int kSignalSlots = 64;
 
 struct ModuleEntry
 {
-    uintptr_t start;
-    uintptr_t end;
-    uintptr_t bias;
-    char buildId[41];
-    char name[kModuleNameLen];
+    uintptr_t start{ 0 };
+    uintptr_t end{ 0 };
+    uintptr_t bias{ 0 };
+    char buildId[41]{};
+    char name[kModuleNameLen]{};
 };
 
 struct LineSlot
 {
     std::atomic<uint32_t> state{ 0 };
-    uint32_t hash;
-    uint32_t repeat;
-    int severity;
-    int source;
-    int64_t stampMs;
-    uint16_t length;
-    char text[kLineLen];
+    uint32_t hash{ 0 };
+    uint32_t repeat{ 0 };
+    int severity{ 0 };
+    int source{ 0 };
+    int64_t stampMs{ 0 };
+    uint16_t length{ 0 };
+    char text[kLineLen]{};
 };
 
 struct FatalSlot
 {
     std::atomic<uint32_t> state{ 0 };
-    int severity;
-    int64_t stampMs;
-    uint16_t length;
-    char text[kFatalLen];
+    int severity{ 0 };
+    int64_t stampMs{ 0 };
+    uint16_t length{ 0 };
+    char text[kFatalLen]{};
 };
 
 struct Crumb
 {
     std::atomic<uint32_t> state{ 0 };
-    int32_t tick;
-    uint16_t site;
-    uint16_t name;
+    int32_t tick{ 0 };
+    uint16_t site{ 0 };
+    uint16_t name{ 0 };
 };
 
 struct CommandSlot
 {
     std::atomic<uint32_t> state{ 0 };
-    int32_t tick;
-    char text[kCommandLen];
+    int32_t tick{ 0 };
+    char text[kCommandLen]{};
 };
 
 struct State
@@ -84,32 +84,32 @@ struct State
     std::atomic<int32_t> moduleCount[2]{};
     std::atomic<int32_t> activeSet{ 0 };
 
-    int reportFd;
-    int probeRead;
-    int probeWrite;
-    int64_t startedMs;
-    int64_t startedUnix;
+    int reportFd{ -1 };
+    int probeRead{ -1 };
+    int probeWrite{ -1 };
+    int64_t startedMs{ 0 };
+    int64_t startedUnix{ 0 };
 
-    uintptr_t fatalErrorStart;
-    uintptr_t fatalErrorEnd;
+    uintptr_t fatalErrorStart{ 0 };
+    uintptr_t fatalErrorEnd{ 0 };
 
-    char runId[17];
-    char installNote[192];
-    char reportPath[kPathLen];
-    char finalPath[kPathLen];
-    char fallbackPath[kPathLen];
-    char perfMapPath[kPathLen];
-    char mapName[64];
-    char version[64];
+    char runId[17]{};
+    char installNote[192]{};
+    char reportPath[kPathLen]{};
+    char finalPath[kPathLen]{};
+    char fallbackPath[kPathLen]{};
+    char perfMapPath[kPathLen]{};
+    char mapName[64]{};
+    char version[64]{};
 
-    ModuleEntry modules[2][kMaxModules];
-    char names[kMaxNames][kNameLen];
-    LineSlot lines[kLineSlots];
-    FatalSlot fatal[kFatalSlots];
-    Crumb crumbs[kCrumbSlots];
-    CommandSlot commands[kCommandSlots];
+    ModuleEntry modules[2][kMaxModules]{};
+    char names[kMaxNames][kNameLen]{};
+    LineSlot lines[kLineSlots]{};
+    FatalSlot fatal[kFatalSlots]{};
+    Crumb crumbs[kCrumbSlots]{};
+    CommandSlot commands[kCommandSlots]{};
 
-    struct sigaction previous[kSignalSlots];
+    struct sigaction previous[kSignalSlots]{};
 };
 
 extern State g_state;
