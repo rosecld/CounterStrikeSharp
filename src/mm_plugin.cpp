@@ -274,7 +274,7 @@ void CounterStrikeSharpMMPlugin::Hook_GameFrame(bool simulating, bool bFirstTick
     crash::SetTick(vars->tickcount);
 
     static int perfMapPump = 0;
-    if (++perfMapPump >= 256)
+    if (++perfMapPump >= 64)
     {
         perfMapPump = 0;
         crash::PumpPerfMap();

@@ -790,7 +790,65 @@ void SectionBlame(int frameCount)
         named++;
     }
 
-    if (named == 0) Out("unresolved reason=no-managed-frames-in-index\n");
+    if (named == 0)
+    {
+        Out("unresolved reason=no-managed-frames-in-index\n");
+
+        uintptr_t lowest = 0;
+        uintptr_t highest = 0;
+        int count = g_state.jitCount.load(std::memory_order_acquire);
+        if (count > kMaxJitEntries) count = kMaxJitEntries;
+
+        for (int index = 0; index < count; ++index)
+        {
+            const JitEntry& entry = g_state.jit[index];
+            if (entry.size == 0) continue;
+            if (lowest == 0 || entry.start < lowest) lowest = entry.start;
+            if (entry.start + entry.size > highest) highest = entry.start + entry.size;
+        }
+
+        Out("index-range=");
+        OutPointer(lowest);
+        Out("..");
+        OutPointer(highest);
+        Out("\n");
+
+        int shown = 0;
+        for (int index = 0; index < frameCount && shown < 6; ++index)
+        {
+            if (FindModule(g_frames[index]) != nullptr) continue;
+            if (!InExec(g_frames[index])) continue;
+
+            Out("managed-frame #");
+            OutDec(index);
+            Out(" ");
+            OutPointer(g_frames[index]);
+            Out("\n");
+            shown++;
+        }
+
+        if (shown == 0) Out("managed-frame none\n");
+
+        for (int index = 0; index < count && index < 3; ++index)
+        {
+            const JitEntry& entry = g_state.jit[index];
+            char sample[160];
+            size_t want = entry.length < sizeof(sample) - 1 ? entry.length : sizeof(sample) - 1;
+            ssize_t got = pread(g_state.perfMapFd, sample, want, (off_t)entry.offset);
+            if (got <= 0) continue;
+            sample[got] = '\0';
+
+            Out("sample ");
+            OutPointer(entry.start);
+            Out(" size=0x");
+            OutHex(entry.size, 0);
+            Out(" ");
+            Out(sample);
+            Out("\n");
+        }
+
+        OutFlush();
+    }
 
     Out("indexed=");
     OutDec(g_state.jitCount.load(std::memory_order_acquire));
