@@ -35,7 +35,7 @@ struct ModuleEntry
 
 struct LineSlot
 {
-    std::atomic<uint32_t> state;
+    std::atomic<uint32_t> state{ 0 };
     uint32_t hash;
     uint32_t repeat;
     int severity;
@@ -47,7 +47,7 @@ struct LineSlot
 
 struct FatalSlot
 {
-    std::atomic<uint32_t> state;
+    std::atomic<uint32_t> state{ 0 };
     int severity;
     int64_t stampMs;
     uint16_t length;
@@ -56,7 +56,7 @@ struct FatalSlot
 
 struct Crumb
 {
-    std::atomic<uint32_t> state;
+    std::atomic<uint32_t> state{ 0 };
     int32_t tick;
     uint16_t site;
     uint16_t name;
@@ -64,25 +64,25 @@ struct Crumb
 
 struct CommandSlot
 {
-    std::atomic<uint32_t> state;
+    std::atomic<uint32_t> state{ 0 };
     int32_t tick;
     char text[kCommandLen];
 };
 
 struct State
 {
-    std::atomic<bool> installed;
-    std::atomic<bool> handlerBusy;
-    std::atomic<bool> consoleVerified;
-    std::atomic<bool> cleanExit;
-    std::atomic<uint32_t> lineCursor;
-    std::atomic<uint32_t> fatalCursor;
-    std::atomic<uint32_t> crumbCursor;
-    std::atomic<uint32_t> commandCursor;
-    std::atomic<int32_t> tick;
-    std::atomic<int32_t> nameCount;
-    std::atomic<int32_t> moduleCount[2];
-    std::atomic<int32_t> activeSet;
+    std::atomic<bool> installed{ false };
+    std::atomic<bool> handlerBusy{ false };
+    std::atomic<bool> consoleVerified{ false };
+    std::atomic<bool> cleanExit{ false };
+    std::atomic<uint32_t> lineCursor{ 0 };
+    std::atomic<uint32_t> fatalCursor{ 0 };
+    std::atomic<uint32_t> crumbCursor{ 0 };
+    std::atomic<uint32_t> commandCursor{ 0 };
+    std::atomic<int32_t> tick{ 0 };
+    std::atomic<int32_t> nameCount{ 0 };
+    std::atomic<int32_t> moduleCount[2]{};
+    std::atomic<int32_t> activeSet{ 0 };
 
     int reportFd;
     int probeRead;
