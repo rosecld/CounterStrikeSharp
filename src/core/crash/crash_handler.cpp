@@ -749,6 +749,10 @@ void SectionBlame(int frameCount)
 {
     Out("[BLAME]\n");
 
+    int32_t before = g_state.jitCount.load(std::memory_order_acquire);
+    PumpPerfMap();
+    int32_t after = g_state.jitCount.load(std::memory_order_acquire);
+
     if (g_state.perfMapPath[0] == '\0')
     {
         Out("unresolved reason=perfmap-off\n\n");
@@ -852,6 +856,8 @@ void SectionBlame(int frameCount)
 
     Out("indexed=");
     OutDec(g_state.jitCount.load(std::memory_order_acquire));
+    Out(" at-crash=+");
+    OutDec(after - before);
     Out(" dropped=");
     OutDec(g_state.jitDropped.load(std::memory_order_acquire));
     Out("\n\n");

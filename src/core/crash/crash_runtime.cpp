@@ -538,7 +538,7 @@ void IndexPerfMapLine(const char* line, size_t length, int64_t fileOffset)
 
 void PumpPerfMap()
 {
-    if (Disabled() || g_state.perfMapPath[0] == '\0') return;
+    if (g_state.perfMapPath[0] == '\0') return;
 
     bool expected = false;
     if (!g_pumpBusy.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
