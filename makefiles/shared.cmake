@@ -45,6 +45,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 endif()
 
+set(EIFACE_PATH ${SOURCESDK}/public/eiface.h)
+file(READ ${EIFACE_PATH} EIFACE_TEXT)
+string(FIND "${EIFACE_TEXT}" "UnknownSpawnGroup_1023" EIFACE_PATCHED)
+if(EIFACE_PATCHED EQUAL -1)
+    set(EIFACE_ANCHOR "virtual bool	IsSpawnGroupLoaded( SpawnGroupHandle_t spawnGroup ) const = 0;")
+    string(FIND "${EIFACE_TEXT}" "${EIFACE_ANCHOR}" EIFACE_AT)
+    if(EIFACE_AT EQUAL -1)
+        message(FATAL_ERROR "eiface.h: IsSpawnGroupLoaded not found")
+    endif()
+    string(REPLACE "${EIFACE_ANCHOR}" "${EIFACE_ANCHOR}
+	virtual void	UnknownSpawnGroup_1023() = 0;" EIFACE_TEXT "${EIFACE_TEXT}")
+    file(WRITE ${EIFACE_PATH} "${EIFACE_TEXT}")
+endif()
+
 include_directories(
     ${SOURCESDK}
     ${SOURCESDK}/thirdparty/protobuf-3.21.8/src
