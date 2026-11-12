@@ -22,7 +22,21 @@ using namespace google;
 namespace counterstrikesharp {
 int UserMessage::GetMessageID() { return msgSerializable->GetNetMessageInfo()->m_MessageId; }
 
-std::string UserMessage::GetMessageName() { return msgSerializable->GetUnscopedName(); }
+const std::string& UserMessage::GetMessageName()
+{
+    if (!displayName.empty() || !msgSerializable) return displayName;
+
+    displayName = msgSerializable->GetUnscopedName();
+
+    auto open = displayName.rfind(" [");
+    if (open != std::string::npos && displayName.size() > open + 3 && displayName.back() == ']'
+        && displayName.find_first_not_of("-0123456789", open + 2) == displayName.size() - 1)
+    {
+        displayName.erase(open);
+    }
+
+    return displayName;
+}
 
 bool UserMessage::HasField(std::string fieldName)
 {
