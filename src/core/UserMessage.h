@@ -126,7 +126,7 @@ class UserMessage
         if (manuallyAllocated) delete this->recipientMask;
     }
 
-    const std::string& GetMessageName();
+    std::string GetMessageName();
     int GetMessageID();
     bool HasField(std::string fieldName);
     const CNetMessagePB<google::protobuf::Message>* GetProtobufMessage();
@@ -137,7 +137,6 @@ class UserMessage
   private:
     CNetMessagePB<google::protobuf::Message>* msg = nullptr;
     INetworkMessageInternal* msgSerializable = nullptr;
-    std::string displayName;
     int nRecipientCount = 0;
     uint64* recipientMask = nullptr;
     bool manuallyAllocated = false;
